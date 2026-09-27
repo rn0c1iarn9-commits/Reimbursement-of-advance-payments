@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>立替精算</title>
+
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;margin:0;background:#f5f7fb;color:#222;-webkit-tap-highlight-color:transparent}
+.fixed-header{position:sticky;top:0;z-index:1000;background:#f5f7fb;padding-bottom:6px}
+.nav-buttons{position:relative;display:flex;justify-content:left;align-items:center;padding:8px 12px}
+h2{margin:0;font-size:18px;font-weight:600}
+.header-actions{position:absolute;right:12px;display:flex;gap:3px}
+.header-btn{width:42px;height:36px;border:none;border-radius:10px;background:#fff;color:#555;box-shadow:0 2px 6px rgba(0,0,0,.08);font-size:16px}
+.clear-btn{color:#d64545}.csv-btn{color:#3478db}
+.mic-btn{color:#555}
+.mic-btn.listening{background:#ffe1e1;color:#d64545;animation:micPulse 1s infinite}
+@keyframes micPulse{50%{box-shadow:0 0 0 5px rgba(214,69,69,.12)}}
+button{border:none;border-radius:10px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.08);cursor:pointer;transition:.15s}
+button:active{transform:scale(.96)}
+
+.summary{padding:0 10px 7px}
+.summary-card{background:#fff;border-radius:16px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.summary-title{font-size:12px;color:#888;margin-bottom:7px}
+.total-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.person-total{border-radius:12px;padding:7px 10px;background:#f6f7fb;text-align:center}
+.person-label{font-size:11px;color:#777;margin-bottom:2px}
+.person-money{font-size:19px;font-weight:700}
+.husband{color:#3478db}.wife{color:#e35b78}
+.settlement{margin-top:7px;border-radius:12px;padding:7px 12px;background:#eef5ff;text-align:center}
+.settlement-label{font-size:10px;color:#777;margin-bottom:2px}
+.settlement-result{font-size:16px;font-weight:700;color:#245ca8}
+.settlement.none{background:#edf8ef}.settlement.none .settlement-result{color:#2d8245}
+
+.input-section{padding:0 10px 7px}
+.input-card{background:#fff;border-radius:16px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.person-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:7px}
+.person-selector input{display:none}
+.person-selector label{padding:7px;text-align:center;border-radius:10px;background:#f2f3f7;font-size:14px;font-weight:600;cursor:pointer}
+.person-selector input:checked+label.husband-label{background:#dbe9ff;color:#245ca8}
+.person-selector input:checked+label.wife-label{background:#ffe1e8;color:#c14360}
+
+input[type="text"]{width:100%;padding:9px 12px;border:none;border-radius:10px;background:#f6f7fb;font-size:16px;outline:none}
+
+/* 電卓表示 */
+.calculator-display{
+  position:relative;margin-top:7px;min-height:48px;border-radius:10px;
+  background:#f6f7fb;padding:5px 43px 5px 10px;text-align:right;overflow:hidden
+}
+.expression{height:15px;color:#999;font-size:11px;white-space:nowrap;overflow:hidden}
+.amount-display{font-size:23px;font-weight:700;line-height:27px;white-space:nowrap;overflow:hidden}
+.amount-voice-btn{
+  position:absolute;right:4px;bottom:5px;width:34px;height:30px;
+  background:transparent;box-shadow:none;color:#555;font-size:17px
+}
+.amount-voice-btn.listening{color:#e35b78;animation:pulseAmount 1s infinite}
+@keyframes pulseAmount{50%{transform:scale(1.12)}}
+
+/* 電卓 */
+.calculator{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:7px}
+.calc-btn{min-height:42px;border-radius:9px;background:#f6f7fb;font-size:18px;font-weight:500}
+.calc-btn.operator{background:#eaf1ff;color:#245ca8}
+.calc-btn.equal{background:#4f8cff;color:#fff}
+.calc-btn.clear{color:#d64545}
+.calc-btn.toggle{font-size:12px;font-weight:700;background:#eef5ff;color:#245ca8}
+.calc-btn.toggle.full{background:#fff0d9;color:#b56b00}
+
+/* 登録 */
+.register-btn{
+  width:100%;margin-top:7px;padding:10px;background:#4f8cff;color:#fff;
+  font-size:15px;font-weight:700;border-radius:10px;box-shadow:0 3px 10px rgba(79,140,255,.25)
+}
+
+.detail-section{padding:0 10px 25px}
+.detail-card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.detail-title{font-size:15px;font-weight:600}.detail-count{font-size:11px;color:#999}
+.detail-list{display:flex;flex-direction:column;gap:6px}
+.detail-item{display:flex;align-items:center;min-height:50px;padding:7px 10px;background:#f7f8fb;border-radius:10px;cursor:pointer}
+.detail-person{width:34px;font-size:11px;font-weight:700}
+.detail-content{flex:1;min-width:0}
+.detail-name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail-date{font-size:10px;color:#999;margin-top:2px}
+.detail-amount{display:flex;flex-direction:column;align-items:flex-end;margin-left:8px;white-space:nowrap}
+.detail-amount-value{font-size:15px;font-weight:700}
+.settlement-badge{display:inline-block;margin-top:2px;padding:2px 5px;border-radius:5px;font-size:9px;font-weight:600;line-height:1.2}
+.settlement-badge.split{background:#eaf1ff;color:#3478db}.settlement-badge.full{background:#fff0d9;color:#b56b00}
+.delete-item{width:30px;height:30px;margin-left:6px;background:transparent;box-shadow:none;color:#aaa;font-size:16px}
+.empty{padding:20px 10px;text-align:center;color:#aaa;font-size:13px}
+.editing-hint{font-size:10px;color:#888;margin-top:4px;text-align:center}
+
+@media(max-width:360px){
+ .calc-btn{min-height:39px;font-size:17px}
+ .amount-display{font-size:22px}
+ .settlement-type-btn{font-size:12px}
+}
+
+.settings-modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:2000;
+  background:rgba(0,0,0,.35);
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.settings-modal.show{
+  display:flex;
+}
+
+.settings-card{
+  width:100%;
+  max-width:380px;
+  background:#fff;
+  border-radius:18px;
+  box-shadow:0 10px 40px rgba(0,0,0,.2);
+  overflow:hidden;
+}
+
+.settings-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 16px;
+  border-bottom:1px solid #eee;
+}
+
+.settings-title{
+  font-size:17px;
+  font-weight:700;
+}
+
+.settings-close{
+  width:32px;
+  height:32px;
+  background:#f3f4f7;
+  box-shadow:none;
+  font-size:22px;
+  color:#777;
+}
+
+.settings-body{
+  padding:16px;
+}
+
+.settings-body label{
+  display:block;
+  margin-bottom:14px;
+  font-size:12px;
+  color:#777;
+  font-weight:600;
+}
+
+.settings-body input{
+  display:block;
+  width:100%;
+  margin-top:6px;
+  padding:10px 12px;
+  border:none;
+  border-radius:10px;
+  background:#f6f7fb;
+  font-size:16px;
+  outline:none;
+}
+
+.settings-save-btn{
+  width:100%;
+  margin-top:4px;
+  padding:11px;
+  background:#4f8cff;
+  color:#fff;
+  font-size:15px;
+  font-weight:700;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="fixed-header">
+  <div class="nav-buttons">
+    <h2>立替精算</h2>
+    <div class="header-actions">
+      <button class="header-btn mic-btn" id="micButton" onclick="startVoiceInput()" aria-label="音声入力" title="音声入力">🎤</button>
+      <button class="header-btn csv-btn" onclick="exportCSV()" aria-label="CSV出力" title="CSV出力">📄</button>
+      <button class="header-btn" onclick="openSettings()" aria-label="設定" title="設定">⚙️</button>
+      <button class="header-btn clear-btn" onclick="clearAll()" aria-label="全データ削除" title="全データ削除">🗑️</button>
+    </div>
+  </div>
+</div>
+
+<section class="summary">
+  <div class="summary-card">
+    <div class="summary-title">現在の支払い状況</div>
+    <div class="total-row">
+      <div class="person-total">
+        <div class="person-label">夫の支払い</div>
+        <div id="husbandTotal" class="person-money husband">0円</div>
+      </div>
+      <div class="person-total">
+        <div class="person-label">妻の支払い</div>
+        <div id="wifeTotal" class="person-money wife">0円</div>
+      </div>
+    </div>
+    <div id="settlementBox" class="settlement">
+      <div class="settlement-label">精算</div>
+      <div id="settlementResult" class="settlement-result">まだ支払いがありません</div>
+    </div>
+  </div>
+</section>
+
+<section class="input-section">
+  <div class="input-card">
+
+    <div class="person-selector">
+      <input type="radio" id="payerHusband" name="payer" value="husband" checked>
+      <label for="payerHusband" class="husband-label">👨 夫</label>
+      <input type="radio" id="payerWife" name="payer" value="wife">
+      <label for="payerWife" class="wife-label">👩 妻</label>
+    </div>
+
+    <input type="text" id="itemName" placeholder="支払い名目（例：新幹線）" maxlength="50">
+
+    <div class="calculator-display">
+      <div id="expression" class="expression"></div>
+      <div id="amountDisplay" class="amount-display">0</div>
+    </div>
+
+    <div class="calculator">
+
+      <button class="calc-btn clear" onclick="clearCalculator()">AC</button>
+      <button class="calc-btn" onclick="backspace()">⌫</button>
+      <button id="settlementToggle" class="calc-btn toggle" onclick="toggleSettlementType()">割勘</button>
+      <button class="calc-btn operator" onclick="inputOperator('÷')">÷</button>
+
+      <button class="calc-btn" onclick="inputNumber('7')">7</button>
+      <button class="calc-btn" onclick="inputNumber('8')">8</button>
+      <button class="calc-btn" onclick="inputNumber('9')">9</button>
+      <button class="calc-btn operator" onclick="inputOperator('×')">×</button>
+
+      <button class="calc-btn" onclick="inputNumber('4')">4</button>
+      <button class="calc-btn" onclick="inputNumber('5')">5</button>
+      <button class="calc-btn" onclick="inputNumber('6')">6</button>
+      <button class="calc-btn operator" onclick="inputOperator('-')">−</button>
+
+      <button class="calc-btn" onclick="inputNumber('1')">1</button>
+      <button class="calc-btn" onclick="inputNumber('2')">2</button>
+      <button class="calc-btn" onclick="inputNumber('3')">3</button>
+      <button class="calc-btn operator" onclick="inputOperator('+')">＋</button>
+
+      <button class="calc-btn" onclick="inputNumber('0')">0</button>
+      <button class="calc-btn" onclick="inputNumber('00')">00</button>
+      <button class="calc-btn" onclick="inputNumber('000')">000</button>
+      <button class="calc-btn equal" onclick="calculate()">＝</button>
+
+    </div>
+
+    <button id="registerBtn" class="register-btn" onclick="registerPayment()">＋ 支払いを登録</button>
+    <div id="editingHint" class="editing-hint" style="display:none">明細を編集中</div>
+  </div>
+</section>
+
+<section class="detail-section">
+  <div class="detail-card">
+    <div class="detail-header">
+      <div class="detail-title">支払い明細</div>
+      <div id="detailCount" class="detail-count">0件</div>
+    </div>
+    <div id="detailList" class="detail-list"></div>
+  </div>
+</section>
+
+<div id="settingsModal" class="settings-modal">
+  <div class="settings-card">
+    <div class="settings-header">
+      <div class="settings-title">設定</div>
+      <button class="settings-close" onclick="closeSettings()">×</button>
+    </div>
+
+    <div class="settings-body">
+      <label>
+        1人目の名前
+        <input type="text" id="settingsNameHusband" maxlength="20" placeholder="名前を入力">
+      </label>
+
+      <label>
+        2人目の名前
+        <input type="text" id="settingsNameWife" maxlength="20" placeholder="名前を入力">
+      </label>
+
+      <button class="settings-save-btn" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY="couple-travel-expense-v1";
+
+const SETTINGS_KEY="couple-travel-expense-settings-v1";
+
+let userNames={
+  husband:"夫",
+  wife:"妻"
+};
+
+try{
+  const savedSettings=localStorage.getItem(SETTINGS_KEY);
+
+  if(savedSettings){
+    const parsed=JSON.parse(savedSettings);
+
+    userNames.husband=parsed.husband||"夫";
+    userNames.wife=parsed.wife||"妻";
+  }
+}catch(e){
+  console.error(e);
+}
+
+let payments=[];
+try{
+  const saved=localStorage.getItem(STORAGE_KEY);
+  if(saved) payments=JSON.parse(saved);
+}catch(e){console.error(e);payments=[]}
+
+let calculatorValue="0",firstValue=null,currentOperator=null,waitingForSecondValue=false,expressionText="";
+let settlementType="split";
+let editingId=null;
+let editingOriginalName="";
+let recognition=null;
+let isRecognizing=false;
+
+const amountDisplay=document.getElementById("amountDisplay");
+const expression=document.getElementById("expression");
+const itemName=document.getElementById("itemName");
+const micButton=document.getElementById("micButton");
+const registerBtn=document.getElementById("registerBtn");
+
+function openSettings(){
+  document.getElementById("settingsNameHusband").value=userNames.husband;
+  document.getElementById("settingsNameWife").value=userNames.wife;
+
+  document.getElementById("settingsModal").classList.add("show");
+}
+
+function closeSettings(){
+  document.getElementById("settingsModal").classList.remove("show");
+}
+
+function saveSettings(){
+  const husbandName=document.getElementById("settingsNameHusband").value.trim();
+  const wifeName=document.getElementById("settingsNameWife").value.trim();
+
+  if(!husbandName||!wifeName){
+    alert("2人とも名前を入力してください。");
+    return;
+  }
+
+  userNames.husband=husbandName;
+  userNames.wife=wifeName;
+
+  localStorage.setItem(
+    SETTINGS_KEY,
+    JSON.stringify(userNames)
+  );
+
+  updateUserNames();
+  closeSettings();
+}
+
+function updateUserNames(){
+  const payerHusbandLabel=document.querySelector(
+    'label[for="payerHusband"]'
+  );
+
+  const payerWifeLabel=document.querySelector(
+    'label[for="payerWife"]'
+  );
+
+  if(payerHusbandLabel){
+    payerHusbandLabel.textContent="👨 "+userNames.husband;
+  }
+
+  if(payerWifeLabel){
+    payerWifeLabel.textContent="👩 "+userNames.wife;
+  }
+
+  const personLabels=document.querySelectorAll(".person-label");
+
+  if(personLabels[0]){
+    personLabels[0].textContent=userNames.husband+"の支払い";
+  }
+
+  if(personLabels[1]){
+    personLabels[1].textContent=userNames.wife+"の支払い";
+  }
+
+  render();
+}
+
+function savePayments(){localStorage.setItem(STORAGE_KEY,JSON.stringify(payments))}
+function formatMoney(value){return Math.round(value).toLocaleString("ja-JP")+"円"}
+
+function updateCalculatorDisplay(){
+  const n=Number(calculatorValue);
+  amountDisplay.textContent=Number.isFinite(n)?n.toLocaleString("ja-JP"):calculatorValue;
+  expression.textContent=expressionText;
+}
+
+function inputNumber(num){
+  if(waitingForSecondValue){
+    calculatorValue=num;
+    waitingForSecondValue=false;
+  }else if(calculatorValue==="0"){
+    calculatorValue=(num==="00"||num==="000")?"0":num;
+  }else{
+    calculatorValue+=num;
+  }
+  updateCalculatorDisplay();
+}
+
+function inputOperator(operator){
+  const inputValue=Number(calculatorValue);
+  if(!Number.isFinite(inputValue))return;
+
+  if(firstValue!==null&&currentOperator&&!waitingForSecondValue){
+    const result=performCalculation(firstValue,inputValue,currentOperator);
+    if(result===null)return;
+    calculatorValue=String(result);
+    firstValue=result;
+  }else{
+    firstValue=inputValue;
+  }
+
+  currentOperator=operator;
+  waitingForSecondValue=true;
+  expressionText=`${formatNumberForExpression(firstValue)} ${operator}`;
+  updateCalculatorDisplay();
+}
+
+function calculate(){
+  if(firstValue===null||currentOperator===null||waitingForSecondValue)return;
+
+  const secondValue=Number(calculatorValue);
+  const result=performCalculation(firstValue,secondValue,currentOperator);
+  if(result===null)return;
+
+  expressionText=`${formatNumberForExpression(firstValue)} ${currentOperator} ${formatNumberForExpression(secondValue)} =`;
+  calculatorValue=String(result);
+  firstValue=null;
+  currentOperator=null;
+  waitingForSecondValue=true;
+  updateCalculatorDisplay();
+}
+
+function performCalculation(a,b,operator){
+  switch(operator){
+    case "+":return a+b;
+    case "-":return a-b;
+    case "×":return a*b;
+    case "÷":
+      if(b===0){
+        alert("0で割ることはできません。");
+        clearCalculator();
+        return null;
+      }
+      return a/b;
+    default:return b;
+  }
+}
+
+function clearCalculator(){
+  calculatorValue="0";
+  firstValue=null;
+  currentOperator=null;
+  waitingForSecondValue=false;
+  expressionText="";
+  updateCalculatorDisplay();
+}
+
+function backspace(){
+  if(waitingForSecondValue)return;
+  calculatorValue=calculatorValue.length<=1?"0":calculatorValue.slice(0,-1);
+  updateCalculatorDisplay();
+}
+
+function formatNumberForExpression(value){
+  return Number(value).toLocaleString("ja-JP");
+}
+
+function setSettlementType(type){
+  if(type!=="split"&&type!=="full")return;
+  settlementType=type;
+  const btn=document.getElementById("settlementToggle");
+  btn.textContent=type==="split"?"割勘（1/2）":"全額";
+  btn.classList.toggle("full",type==="full");
+}
+
+function toggleSettlementType(){
+  setSettlementType(settlementType==="split"?"full":"split");
+}
+
+function getSettlementAmount(payment){
+  return (payment.settlementType||"split")==="full"?payment.amount:payment.amount/2;
+}
+
+/* =========================
+   音声入力
+========================= */
+
+function setupRecognition(){
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRecognition)return null;
+
+  const r=new SpeechRecognition();
+  r.lang="ja-JP";
+  r.continuous=false;
+  r.interimResults=true;
+  r.maxAlternatives=1;
+
+  r.onstart=()=>{
+    isRecognizing=true;
+    micButton.classList.add("listening");
+    micButton.textContent="🔴";
+  };
+
+  r.onresult=event=>{
+    let text="";
+
+    for(let i=event.resultIndex;i<event.results.length;i++){
+      text+=event.results[i][0].transcript;
+    }
+
+    const result=event.results[event.results.length-1];
+
+    // 確定した音声だけ処理する
+    if(result && result.isFinal){
+      processVoiceText(text);
+    }
+  };
+
+  r.onerror=event=>{
+    isRecognizing=false;
+    micButton.classList.remove("listening");
+    micButton.textContent="🎤";
+
+    if(event.error==="not-allowed"||event.error==="service-not-allowed"){
+      alert("マイクの使用が許可されていません。ブラウザのサイト設定からマイクを許可してください。");
+    }else if(event.error!=="no-speech"){
+      alert("音声を認識できませんでした。もう一度お試しください。");
+    }
+  };
+
+  r.onend=()=>{
+    isRecognizing=false;
+    micButton.classList.remove("listening");
+    micButton.textContent="🎤";
+  };
+
+  return r;
+}
+
+function startVoiceInput(){
+  if(isRecognizing){
+    if(recognition){
+      try{recognition.stop()}catch(e){}
+    }
+    return;
+  }
+
+  if(!recognition)recognition=setupRecognition();
+
+  if(!recognition){
+    alert("このブラウザは音声入力に対応していません。iPhoneではSafariなど対応ブラウザをご利用ください。");
+    return;
+  }
+
+  try{
+    recognition.start();
+  }catch(e){
+    if(e.name!=="InvalidStateError"){
+      console.error(e);
+    }
+  }
+}
+
+/*
+ * 音声から最後の金額部分を探し、
+ * それより前を名目として扱う。
+ *
+ * 例：
+ * 「ホテル 12000円」
+ * → 名目：ホテル
+ * → 金額：12000
+ *
+ * 「新幹線 15000」
+ * → 名目：新幹線
+ * → 金額：15000
+ */
+function processVoiceText(text){
+  if(!text)return;
+
+  let normalized=text.trim();
+
+  normalized=normalized
+    .replace(/,|，/g,"")
+    .replace(/〇/g,"0")
+    .replace(/○/g,"0")
+    .replace(/ゼロ/g,"0")
+    .replace(/一万/g,"10000")
+    .replace(/二万/g,"20000")
+    .replace(/三万/g,"30000")
+    .replace(/四万/g,"40000")
+    .replace(/五万/g,"50000")
+    .replace(/六万/g,"60000")
+    .replace(/七万/g,"70000")
+    .replace(/八万/g,"80000")
+    .replace(/九万/g,"90000");
+
+  /*
+   * 「12,000円」「12000円」「12000」
+   * のような最後の数字を金額として取得。
+   */
+  const match=normalized.match(/(\d+(?:\.\d+)?)\s*(?:円|えん)?\s*$/);
+  if(!match){return;}
+  const amountText=match[1];
+  const amount=Number(amountText);
+  const name=normalized.slice(0,match.index).trim().replace(/[、,，。\s]+$/,"");
+
+  if(!name){
+    alert("支払い名目を認識できませんでした。「ホテル 12000円」のように話してください。");
+    return;
+  }
+
+  if(!Number.isFinite(amount)||amount<=0){
+    alert("金額を正しく認識できませんでした。");
+    return;
+  }
+
+  itemName.value=name;
+  setCalculatorAmount(amount);
+  itemName.focus();
+}
+
+function setCalculatorAmount(amount){
+  calculatorValue=String(Math.round(amount));
+  firstValue=null;
+  currentOperator=null;
+  waitingForSecondValue=false;
+  expressionText="音声入力";
+  updateCalculatorDisplay();
+}
+
+/* =========================
+   登録・編集
+========================= */
+
+function registerPayment(){
+  const payer=document.querySelector('input[name="payer"]:checked').value;
+  const name=itemName.value.trim();
+
+  let amount=Number(calculatorValue);
+
+  if(firstValue!==null&&currentOperator!==null&&!waitingForSecondValue){
+    calculate();
+    amount=Number(calculatorValue);
+  }
+
+  if(!name){
+    alert("支払い名目を入力してください。");
+    itemName.focus();
+    return;
+  }
+
+  if(!Number.isFinite(amount)||amount<=0){
+    alert("1円以上の金額を入力してください。");
+    return;
+  }
+
+  if(editingId){
+    const payment=payments.find(p=>p.id===editingId);
+
+    if(payment&&name===editingOriginalName){
+      payment.payer=payer;
+      payment.amount=amount;
+      payment.settlementType=settlementType;
+      savePayments();
+      render();
+      resetInput();
+      return;
+    }
+
+    /*
+     * 名目を変更した場合は新しい明細として追加。
+     */
+  }
+
+  const payment={
+    id:Date.now().toString()+Math.random().toString(16).slice(2),
+    payer,
+    name,
+    amount,
+    settlementType,
+    createdAt:new Date().toISOString()
+  };
+
+  payments.push(payment);
+  savePayments();
+  render();
+  resetInput();
+}
+
+function resetInput(){
+  itemName.value="";
+  clearCalculator();
+  //setSettlementType("split");
+  editingId=null;
+  editingOriginalName="";
+  registerBtn.textContent="＋ 支払いを登録";
+  itemName.focus();
+}
+
+/* 明細編集 */
+function editPayment(id){
+  const payment=payments.find(p=>p.id===id);
+  if(!payment)return;
+
+  editingId=payment.id;
+  editingOriginalName=payment.name;
+
+  document.querySelector(`input[name="payer"][value="${payment.payer}"]`).checked=true;
+  itemName.value=payment.name;
+  calculatorValue=String(Math.round(payment.amount));
+  firstValue=null;currentOperator=null;waitingForSecondValue=true;expressionText="";
+  setSettlementType(payment.settlementType||"split");
+  updateCalculatorDisplay();
+
+  registerBtn.textContent="更新";
+  document.querySelector(".input-section").scrollIntoView({behavior:"smooth",block:"start"});
+  setTimeout(()=>itemName.focus(),300);
+}
+
+function deletePayment(id){
+  const payment=payments.find(item=>item.id===id);
+  if(!payment)return;
+
+  if(!confirm(`「${payment.name}」${formatMoney(payment.amount)}を削除しますか？`))return;
+
+  payments=payments.filter(item=>item.id!==id);
+  savePayments();
+  render();
+
+  if(editingId===id)resetInput();
+}
+
+function clearAll(){
+  if(payments.length===0){
+    alert("削除するデータがありません。");
+    return;
+  }
+
+  if(!confirm("登録した支払いをすべて削除します。\n\nこの操作は元に戻せません。よろしいですか？"))return;
+
+  payments=[];
+  savePayments();
+  render();
+  resetInput();
+}
+
+/* 名目を変更した時点で編集モードを解除 */
+itemName.addEventListener("input",()=>{
+  if(editingId&&itemName.value!==editingOriginalName){
+    editingId=null;
+    editingOriginalName="";
+    registerBtn.textContent="＋ 支払いを登録";
+  }
+});
+
+/* =========================
+   合計・精算
+========================= */
+
+function calculateTotals(){
+  let husbandTotal=0,wifeTotal=0;
+
+  payments.forEach(payment=>{
+    const amount=getSettlementAmount(payment);
+    if(payment.payer==="husband")husbandTotal+=amount;
+    else wifeTotal+=amount;
+  });
+
+  return {husbandTotal,wifeTotal};
+}
+
+function renderSettlement(husbandTotal,wifeTotal){
+  const box=document.getElementById("settlementBox");
+  const result=document.getElementById("settlementResult");
+  const difference=husbandTotal-wifeTotal;
+
+  box.classList.remove("none");
+
+  if(husbandTotal===0&&wifeTotal===0){
+    result.textContent="まだ支払いがありません";
+    return;
+  }
+
+  if(Math.abs(difference)<0.000001){
+    result.textContent="精算なし（支払額は同じです）";
+    box.classList.add("none");
+    return;
+  }
+
+  const settlement=Math.abs(difference);
+
+  result.textContent=difference>0
+    ?`${userNames.wife} → ${userNames.husband}へ ${formatMoney(settlement)}`
+    :`${userNames.husband} → ${userNames.wife}へ ${formatMoney(settlement)}`;
+}
+
+/* =========================
+   明細
+========================= */
+
+function renderDetails(){
+  const list=document.getElementById("detailList");
+  const count=document.getElementById("detailCount");
+
+  count.textContent=`${payments.length}件`;
+  list.innerHTML="";
+
+  if(payments.length===0){
+    list.innerHTML='<div class="empty">まだ支払いが登録されていません</div>';
+    return;
+  }
+
+  [...payments].reverse().forEach(payment=>{
+    const item=document.createElement("div");
+    item.className="detail-item";
+    item.onclick=()=>editPayment(payment.id);
+
+    const person=document.createElement("div");
+    person.className="detail-person "+(payment.payer==="husband"?"husband":"wife");
+    person.textContent=payment.payer==="husband" ?userNames.husband :userNames.wife;
+
+    const content=document.createElement("div");
+    content.className="detail-content";
+
+    const name=document.createElement("div");
+    name.className="detail-name";
+    name.textContent=payment.name;
+
+    const date=document.createElement("div");
+    date.className="detail-date";
+    date.textContent=formatDate(payment.createdAt);
+
+    content.appendChild(name);
+    content.appendChild(date);
+
+    const amount=document.createElement("div");
+    amount.className="detail-amount";
+
+    const amountValue=document.createElement("div");
+    amountValue.className="detail-amount-value";
+    amountValue.textContent=formatMoney(payment.amount);
+
+    const badge=document.createElement("span");
+    const type=payment.settlementType||"split";
+    badge.className="settlement-badge "+(type==="full"?"full":"split");
+    badge.textContent=type==="full"?"全額":"割勘";
+
+    amount.appendChild(amountValue);
+    amount.appendChild(badge);
+
+    const deleteButton=document.createElement("button");
+    deleteButton.className="delete-item";
+    deleteButton.textContent="×";
+    deleteButton.title="削除";
+
+    /*
+     * 親の編集クリックを止める。
+     */
+    deleteButton.onclick=e=>{
+      e.stopPropagation();
+      deletePayment(payment.id);
+    };
+
+    item.appendChild(person);
+    item.appendChild(content);
+    item.appendChild(amount);
+    item.appendChild(deleteButton);
+    list.appendChild(item);
+  });
+}
+
+function formatDate(dateString){
+  const date=new Date(dateString);
+  if(Number.isNaN(date.getTime()))return "";
+
+  const y=date.getFullYear();
+  const m=String(date.getMonth()+1).padStart(2,"0");
+  const d=String(date.getDate()).padStart(2,"0");
+  const h=String(date.getHours()).padStart(2,"0");
+  const min=String(date.getMinutes()).padStart(2,"0");
+
+  return `${y}/${m}/${d} ${h}:${min}`;
+}
+
+/* =========================
+   CSV
+========================= */
+
+function escapeCSV(value){
+  const text=String(value??"");
+
+  if(text.includes(",")||text.includes('"')||text.includes("\n")||text.includes("\r")){
+    return `"${text.replace(/"/g,'""')}"`;
+  }
+
+  return text;
+}
+
+function exportCSV(){
+  if(payments.length===0){
+    alert("CSV出力する支払いデータがありません。");
+    return;
+  }
+
+  const headers=["登録日時","支払者","支払い名目","支払額","精算区分","精算対象額"];
+
+  const rows=payments.map(payment=>{
+    const type=payment.settlementType||"split";
+    return [
+      formatDate(payment.createdAt),
+      payment.payer==="husband" ?userNames.husband :userNames.wife,
+      payment.name,
+      Math.round(payment.amount),
+      type==="full"?"全額":"割勘",
+      Math.round(getSettlementAmount(payment))
+    ];
+  });
+
+  const csvRows=[headers.map(escapeCSV).join(",")];
+  rows.forEach(row=>csvRows.push(row.map(escapeCSV).join(",")));
+
+  const blob=new Blob(["\uFEFF"+csvRows.join("\r\n")],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement("a");
+
+  link.href=url;
+
+  const now=new Date();
+  const fileDate=now.getFullYear()+String(now.getMonth()+1).padStart(2,"0")+String(now.getDate()).padStart(2,"0");
+  link.download=`立替精算_${fileDate}.csv`;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* =========================
+   全画面更新
+========================= */
+
+function render(){
+  const totals=calculateTotals();
+
+  document.getElementById("husbandTotal").textContent=formatMoney(totals.husbandTotal);
+  document.getElementById("wifeTotal").textContent=formatMoney(totals.wifeTotal);
+
+  renderSettlement(totals.husbandTotal,totals.wifeTotal);
+  renderDetails();
+}
+
+/* =========================
+   キーボード
+========================= */
+
+document.addEventListener("keydown",event=>{
+  /*
+   * input要素にフォーカスしている間は、
+   * キーボードのBackspace等を電卓に送らない。
+   */
+  const target=event.target;
+  const isTextInput=target instanceof HTMLInputElement||
+                    target instanceof HTMLTextAreaElement||
+                    target.isContentEditable;
+
+  if(isTextInput)return;
+
+  const key=event.key;
+
+  if(/^[0-9]$/.test(key)){
+    inputNumber(key);
+    return;
+  }
+
+  if(key==="+"||key==="-"){
+    inputOperator(key);
+    return;
+  }
+
+  if(key==="*"){
+    inputOperator("×");
+    return;
+  }
+
+  if(key==="/"){
+    event.preventDefault();
+    inputOperator("÷");
+    return;
+  }
+
+  if(key==="Enter"||key==="="){
+    calculate();
+    return;
+  }
+
+  if(key==="Backspace"){
+    backspace();
+    return;
+  }
+
+  if(key==="Escape"){
+    clearCalculator();
+  }
+});
+
+/* =========================
+   初期表示
+========================= */
+
+setSettlementType("split");
+updateCalculatorDisplay();
+updateUserNames();
+</script>
+
+</body>
+</html>
