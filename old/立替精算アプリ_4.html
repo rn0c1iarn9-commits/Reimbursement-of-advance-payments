@@ -198,11 +198,11 @@ input[type="text"]{width:100%;padding:9px 12px;border:none;border-radius:10px;ba
     <div class="summary-title">現在の支払い状況</div>
     <div class="total-row">
       <div class="person-total">
-        <div class="person-label">夫の支払い</div>
+        <div class="person-label">一正の支払い</div>
         <div id="husbandTotal" class="person-money husband">0円</div>
       </div>
       <div class="person-total">
-        <div class="person-label">妻の支払い</div>
+        <div class="person-label">皐月の支払い</div>
         <div id="wifeTotal" class="person-money wife">0円</div>
       </div>
     </div>
@@ -218,9 +218,9 @@ input[type="text"]{width:100%;padding:9px 12px;border:none;border-radius:10px;ba
 
     <div class="person-selector">
       <input type="radio" id="payerHusband" name="payer" value="husband" checked>
-      <label for="payerHusband" class="husband-label">👨 夫</label>
+      <label for="payerHusband" class="husband-label">👨 一正</label>
       <input type="radio" id="payerWife" name="payer" value="wife">
-      <label for="payerWife" class="wife-label">👩 妻</label>
+      <label for="payerWife" class="wife-label">👩 皐月</label>
     </div>
 
     <input type="text" id="itemName" placeholder="支払い名目（例：新幹線）" maxlength="50">
@@ -299,27 +299,6 @@ input[type="text"]{width:100%;padding:9px 12px;border:none;border-radius:10px;ba
 
 <script>
 const STORAGE_KEY="couple-travel-expense-v1";
-
-const SETTINGS_KEY="couple-travel-expense-settings-v1";
-
-let userNames={
-  husband:"夫",
-  wife:"妻"
-};
-
-try{
-  const savedSettings=localStorage.getItem(SETTINGS_KEY);
-
-  if(savedSettings){
-    const parsed=JSON.parse(savedSettings);
-
-    userNames.husband=parsed.husband||"夫";
-    userNames.wife=parsed.wife||"妻";
-  }
-}catch(e){
-  console.error(e);
-}
-
 let payments=[];
 try{
   const saved=localStorage.getItem(STORAGE_KEY);
@@ -338,68 +317,6 @@ const expression=document.getElementById("expression");
 const itemName=document.getElementById("itemName");
 const micButton=document.getElementById("micButton");
 const registerBtn=document.getElementById("registerBtn");
-
-function openSettings(){
-  document.getElementById("settingsNameHusband").value=userNames.husband;
-  document.getElementById("settingsNameWife").value=userNames.wife;
-
-  document.getElementById("settingsModal").classList.add("show");
-}
-
-function closeSettings(){
-  document.getElementById("settingsModal").classList.remove("show");
-}
-
-function saveSettings(){
-  const husbandName=document.getElementById("settingsNameHusband").value.trim();
-  const wifeName=document.getElementById("settingsNameWife").value.trim();
-
-  if(!husbandName||!wifeName){
-    alert("2人とも名前を入力してください。");
-    return;
-  }
-
-  userNames.husband=husbandName;
-  userNames.wife=wifeName;
-
-  localStorage.setItem(
-    SETTINGS_KEY,
-    JSON.stringify(userNames)
-  );
-
-  updateUserNames();
-  closeSettings();
-}
-
-function updateUserNames(){
-  const payerHusbandLabel=document.querySelector(
-    'label[for="payerHusband"]'
-  );
-
-  const payerWifeLabel=document.querySelector(
-    'label[for="payerWife"]'
-  );
-
-  if(payerHusbandLabel){
-    payerHusbandLabel.textContent="👨 "+userNames.husband;
-  }
-
-  if(payerWifeLabel){
-    payerWifeLabel.textContent="👩 "+userNames.wife;
-  }
-
-  const personLabels=document.querySelectorAll(".person-label");
-
-  if(personLabels[0]){
-    personLabels[0].textContent=userNames.husband+"の支払い";
-  }
-
-  if(personLabels[1]){
-    personLabels[1].textContent=userNames.wife+"の支払い";
-  }
-
-  render();
-}
 
 function savePayments(){localStorage.setItem(STORAGE_KEY,JSON.stringify(payments))}
 function formatMoney(value){return Math.round(value).toLocaleString("ja-JP")+"円"}
@@ -816,8 +733,8 @@ function renderSettlement(husbandTotal,wifeTotal){
   const settlement=Math.abs(difference);
 
   result.textContent=difference>0
-    ?`${userNames.wife} → ${userNames.husband}へ ${formatMoney(settlement)}`
-    :`${userNames.husband} → ${userNames.wife}へ ${formatMoney(settlement)}`;
+    ?`皐月 → 一正へ ${formatMoney(settlement)}`
+    :`一正 → 皐月へ ${formatMoney(settlement)}`;
 }
 
 /* =========================
@@ -843,7 +760,7 @@ function renderDetails(){
 
     const person=document.createElement("div");
     person.className="detail-person "+(payment.payer==="husband"?"husband":"wife");
-    person.textContent=payment.payer==="husband" ?userNames.husband :userNames.wife;
+    person.textContent=payment.payer==="husband"?"一正":"皐月";
 
     const content=document.createElement("div");
     content.className="detail-content";
@@ -934,7 +851,7 @@ function exportCSV(){
     const type=payment.settlementType||"split";
     return [
       formatDate(payment.createdAt),
-      payment.payer==="husband" ?userNames.husband :userNames.wife,
+      payment.payer==="husband"?"一正":"皐月",
       payment.name,
       Math.round(payment.amount),
       type==="full"?"全額":"割勘",
@@ -1036,7 +953,7 @@ document.addEventListener("keydown",event=>{
 
 setSettlementType("split");
 updateCalculatorDisplay();
-updateUserNames();
+render();
 </script>
 
 </body>
